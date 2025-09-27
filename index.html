@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP 信息查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            padding: 18px 0;
+            border-bottom: 1px solid #e5e5e7;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .icon {
+            width: 30px;
+            margin-right: 15px;
+            font-size: 24px;
+        }
+        
+        .welcome {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            color: #1a1a1a;
+        }
+        
+        .flag {
+            width: 60px;
+            height: 40px;
+            margin-left: auto;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            object-fit: cover;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+            padding: 40px 0;
+        }
+        
+        .error {
+            color: #ff3b30;
+            text-align: center;
+            font-size: 18px;
+            padding: 40px 0;
+        }
+        
+        .value {
+            color: #007AFF;
+            font-weight: 500;
+        }
+        
+        .label {
+            color: #666;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .container {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .info-item {
+            animation: fadeIn 0.5s ease-out;
+            animation-fill-mode: both;
+        }
+        
+        .info-item:nth-child(1) { animation-delay: 0.1s; }
+        .info-item:nth-child(2) { animation-delay: 0.2s; }
+        .info-item:nth-child(3) { animation-delay: 0.3s; }
+        .info-item:nth-child(4) { animation-delay: 0.4s; }
+        .info-item:nth-child(5) { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="content">
+            <div class="loading">正在加载您的信息...</div>
+        </div>
+    </div>
+
+    <script>
+        // 国家代码到中文名称的映射
+        const countryNames = {
+            'US': '美国',
+            'CN': '中国',
+            'JP': '日本',
+            'GB': '英国',
+            'DE': '德国',
+            'FR': '法国',
+            'KR': '韩国',
+            'CA': '加拿大',
+            'AU': '澳大利亚',
+            'RU': '俄罗斯',
+            'IN': '印度',
+            'BR': '巴西',
+            'SG': '新加坡',
+            'HK': '香港',
+            'TW': '台湾',
+            'IT': '意大利',
+            'ES': '西班牙',
+            'NL': '荷兰',
+            'SE': '瑞典',
+            'CH': '瑞士'
+        };
+        
+        // 格式化日期
+        function formatDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            const weekday = weekdays[now.getDay()];
+            return `${year}年${month}月${day}日 星期${weekday}`;
+        }
+        
+        async function fetchIPInfo() {
+            try {
+                const response = await fetch('/api/ip-info');
+                const data = await response.json();
+                
+                // 获取中文国家名
+                const countryNameCN = countryNames[data.countryCode] || data.countryCode || '未知地区';
+                
+                const contentDiv = document.getElementById('content');
+                contentDiv.innerHTML = `
+                    <div class="welcome">
+                        <span><span class="icon">🏠</span> 欢迎来自 ${countryNameCN} ${data.cityName || ''} 的朋友</span>
+                        <img src="https://flagcdn.com/60x40/${(data.countryCode || 'un').toLowerCase()}.png" 
+                             alt="${countryNameCN}" 
+                             class="flag" 
+                             onerror="this.style.display='none'">
+                    </div>
+                    <div class="info-item">
+                        <span class="icon">📅</span>
+                        <span class="label">今天是 <span class="value">${formatDate()}</span></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="icon">🌐</span>
+                        <span class="label">您的IP地址是: <span class="value">${data.ip || '未知'}</span></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="icon">💻</span>
+                        <span class="label">您正在使用 <span class="value">${data.os || '未知'}</span> 系统</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="icon">🔍</span>
+                        <span class="label">您正在使用 <span class="value">${data.browser || '未知'}</span> 浏览器</span>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('content').innerHTML = 
+                    '<div class="error">获取信息失败，请稍后重试</div>';
+            }
+        }
+        
+        // 页面加载后立即获取信息
+        fetchIPInfo();
+    </script>
+</body>
+</html>
