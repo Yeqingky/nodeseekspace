@@ -11,13 +11,15 @@ export default {
                  'unknown';
       const userAgent = request.headers.get('User-Agent') || '';
       
-      // 调用 ip-api.com 免费API获取详细信息
+      // 调用 ip-api.com 免费API获取详细信息，包含时区信息
       let locationData = {};
       try {
         // ip-api.com 免费API (无需密钥，但有限制：45次/分钟)
-        const ipApiResponse = await fetch(`http://ip-api.com/json/${ip}?lang=zh-CN`);
+        // 添加时区字段来获取时区信息
+        const ipApiResponse = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,offset,isp,org,as,query&lang=zh-CN`);
         if (ipApiResponse.ok) {
           locationData = await ipApiResponse.json();
+          console.log('Location data:', locationData); // 调试用
         }
       } catch (error) {
         console.error('IP API error:', error);
@@ -363,28 +365,46 @@ export default {
       let dateStr = '';
       try {
         const now = new Date();
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
         
-        // 如果有时区偏移信息
-        if (locationData.offset !== undefined) {
-          // offset 是相对于UTC的小时数偏移（如 +8 或 -5）
+        // 优先使用API返回的时区信息
+        if (locationData.timezone) {
+          try {
+            // 使用时区名称创建本地时间
+            const localTime = new Date(now.toLocaleString("en-US", {timeZone: locationData.timezone}));
+            dateStr = `${localTime.getFullYear()}年${String(localTime.getMonth() + 1).padStart(2, '0')}月${String(localTime.getDate()).padStart(2, '0')}日 星期${weekdays[localTime.getDay()]}`;
+            console.log(`Using timezone: ${locationData.timezone}, local time: ${localTime}`);
+          } catch (tzError) {
+            console.log('Timezone error:', tzError);
+            // 如果时区名称无效，使用偏移量
+            if (locationData.offset !== undefined) {
+              const offsetHours = locationData.offset;
+              const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+              const targetTime = new Date(utcTime + (offsetHours * 3600000));
+              dateStr = `${targetTime.getFullYear()}年${String(targetTime.getMonth() + 1).padStart(2, '0')}月${String(targetTime.getDate()).padStart(2, '0')}日 星期${weekdays[targetTime.getDay()]}`;
+              console.log(`Using offset: ${offsetHours}, target time: ${targetTime}`);
+            } else {
+              throw new Error('No valid timezone info');
+            }
+          }
+        } else if (locationData.offset !== undefined) {
+          // 如果没有时区名称，使用偏移量
           const offsetHours = locationData.offset;
-          
-          // 计算目标时区的时间
           const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
           const targetTime = new Date(utcTime + (offsetHours * 3600000));
-          
-          const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
           dateStr = `${targetTime.getFullYear()}年${String(targetTime.getMonth() + 1).padStart(2, '0')}月${String(targetTime.getDate()).padStart(2, '0')}日 星期${weekdays[targetTime.getDay()]}`;
+          console.log(`Using offset: ${offsetHours}, target time: ${targetTime}`);
         } else {
-          // 如果没有时区信息，使用服务器时间
-          const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-          dateStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 星期${weekdays[now.getDay()]}`;
+          // 如果没有任何时区信息，使用服务器UTC时间
+          dateStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 星期${weekdays[now.getDay()]} (UTC)`;
+          console.log('No timezone info available, using UTC time:', now);
         }
       } catch (error) {
         // 出错时使用服务器时间
+        console.log('Date processing error:', error);
         const now = new Date();
         const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-        dateStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 星期${weekdays[now.getDay()]}`;
+        dateStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 星期${weekdays[now.getDay()]} (UTC)`;
       }
       
       // IPv6地址格式化 - 更智能的处理
