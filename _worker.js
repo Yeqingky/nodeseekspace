@@ -2,6 +2,7 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const name = url.searchParams.get('name') || '你的名字';
     
     // 主页路由 - 生成图片
     if (url.pathname === "/" || url.pathname === "/ip") {
@@ -486,7 +487,7 @@ export default {
   
   <!-- 标题区域 -->
   <text x="60" y="70" font-family="'Microsoft YaHei', Arial, sans-serif" font-size="26" font-weight="bold" fill="#1a1a1a">
-    欢迎来自 ${country} ${region} ${city} 的朋友访问你的名字的空间
+    欢迎来自 ${country} ${region} ${city} 的朋友访问${name}的空间
   </text>
   
 <!-- 国旗图片 -->
@@ -593,7 +594,7 @@ ${flagData ?
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>IP信息图片生成器 - 你的名字</title>
+    <title>IP信息图片生成器 - ${name}</title>
     <style>
         body { 
             font-family: 'Microsoft YaHei', Arial, sans-serif; 
@@ -676,7 +677,7 @@ ${flagData ?
 </head>
 <body>
     <div class="container">
-        <h1>🎨 IP信息图片生成器 - 你的名字的空间</h1>
+        <h1>🎨 IP信息图片生成器 - ${name}的空间</h1>
         
         <div class="features">
             <div class="feature">
